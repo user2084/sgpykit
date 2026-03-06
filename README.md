@@ -43,8 +43,10 @@ import sgpykit as sg
 ```
 
 and start working with sparse grids like `sg.create_sparse_grid(...)`.
-Tutorials are provided in [Sparse Grids Tutorial](./docs-examples/sparse_grids_tutorial.ipynb) and [Adaptive Grids Tutorial](./docs-examples/tutorial_adaptive.ipynb).
-sgpykit mainly uses numpy as backend. See [differences.md](./differences.md) for more information (relevant for MATLAB users).
+
+- Tutorials are provided in [Sparse Grids Tutorial](./docs-examples/sparse_grids_tutorial.ipynb) and [Adaptive Grids Tutorial](./docs-examples/tutorial_adaptive.ipynb).
+- sgpykit mainly uses numpy as backend. See [differences.md](./differences.md) for more information (relevant for MATLAB users).
+- The online code documentation can be found on: <https://uncertaintyhub.github.io/sgpykit-doc/>
 
 
 ## Installation
