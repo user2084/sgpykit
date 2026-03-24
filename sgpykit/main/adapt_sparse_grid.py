@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import types
 import numpy as np
 
 from sgpykit.main.create_sparse_grid_add_multiidx import create_sparse_grid_add_multiidx
@@ -70,10 +71,10 @@ def adapt_sparse_grid(f, N_full, knots, lev2knots, prev_adapt, controls):
           ``lev2knots = lev2knots_doubling`` (nonprob weights, cannot be used together with buffer)
 
         See tutorial_adaptive.ipynb for an example that shows this.
-    prev_adapt : dict or None
+    prev_adapt : types.SimpleNamespace or None
         By setting PREV_ADAPT as the output ADAPTED of a previous computation, the new computation
         will resume from where the previous one left. Set PREV_ADAPT = None for a fresh start
-    controls : dict
+    controls : types.SimpleNamespace
         A struct defining several parameters that control the algorithm flow. It is possible to
         define only some (or none) of these parameters, the others will be set to default value. Only
         the parameter 'nested' is mandatory. The parameter 'pdf' is mandatory only if controls.prof is
@@ -198,7 +199,7 @@ def adapt_sparse_grid(f, N_full, knots, lev2knots, prev_adapt, controls):
 
     Returns
     -------
-    adapted : dict
+    adapted : types.SimpleNamespace
         A struct containing the results of the algorithms. The same structure can be passed
         as input (PREV_ADAPT) to resume the computation. Its fields are
         adapted.S : the adapted sparse grid (built over both all indices whose profit has been computed,
@@ -279,7 +280,7 @@ def adapt_sparse_grid(f, N_full, knots, lev2knots, prev_adapt, controls):
     # actually resuming a previous computation. Also, we make sure that this is actually no larger than N_full
     # already!
 
-    N = controls['var_buffer_size']
+    N = controls.var_buffer_size
 
     (N, N_log, var_with_pts, S, Sr, f_on_Sr, I, I_log, idx, maxprof,
      idx_bin, profits, G, G_log, coeff_G, Hr, f_on_Hr,
@@ -287,9 +288,9 @@ def adapt_sparse_grid(f, N_full, knots, lev2knots, prev_adapt, controls):
                                                         prev_adapt, controls)
 
     # here's the adapt algo
-    while nb_pts < controls["max_pts"]:
+    while nb_pts < controls.max_pts:
 
-        if maxprof < controls["prof_tol"]:
+        if maxprof < controls.prof_tol:
             break
 
         # -------------------------------------------------------------
@@ -324,7 +325,7 @@ def adapt_sparse_grid(f, N_full, knots, lev2knots, prev_adapt, controls):
             G_log = np.vstack([G_log, jj])
             T, G, coeff_G = create_sparse_grid_add_multiidx(jj, S, G, coeff_G, knots, lev2knots)
 
-            Tr = reduce_sparse_grid(T, controls['pts_tol'])
+            Tr = reduce_sparse_grid(T, controls.pts_tol)
 
             (nb_pts, num_evals, nb_pts_log, Prof_temp[m],
              f_on_Tr, Hr, f_on_Hr, intnew) = compute_profit_idx(
@@ -432,7 +433,7 @@ def adapt_sparse_grid(f, N_full, knots, lev2knots, prev_adapt, controls):
                 Sr.knots = np.vstack([Sr.knots, np.full((1, Sr.knots.shape[1]), mp)])
 
                 # For non-nested points we also have to extend the full list ``Hr``
-                if not controls["nested"]:
+                if not controls.nested:
                     Hr.knots = np.vstack([Hr.knots, np.full((1, Hr.knots.shape[1]), mp)])
 
                 # because we have added the new variable, we need to add right away the profit of the first index in
@@ -446,7 +447,7 @@ def adapt_sparse_grid(f, N_full, knots, lev2knots, prev_adapt, controls):
                 T, G, coeff_G = create_sparse_grid_add_multiidx(
                     Ng_new, S, G, coeff_G, knots, lev2knots
                 )
-                Tr = reduce_sparse_grid(T, controls["pts_tol"])
+                Tr = reduce_sparse_grid(T, controls.pts_tol)
 
                 (
                     nb_pts,
@@ -519,56 +520,56 @@ def adapt_sparse_grid(f, N_full, knots, lev2knots, prev_adapt, controls):
         N_log = np.append(N_log, N)
 
         # optional live plot (only if the user asked for it)
-        if controls.get("plot", False):
+        if controls.plot:
             plot_idx_status(G, I, idx_bin, idx)
 
     # done with the loop on idx, we can reduce Hr to squeeze out multiple occurrencies of same point (if any) and
     # fix nb_pts_visited
-    if not controls["nested"] and controls["recycling"] == "priority_to_evaluation":
+    if not controls.nested and controls.recycling == "priority_to_evaluation":
         # I need to make Hr look like a sequence of tensor grids. I actually only need to add to it a fake weights field
         Hr.weights = np.zeros((1, Hr.knots.shape[1]))
-        Hr = reduce_sparse_grid(Hr, controls["pts_tol"])
+        Hr = reduce_sparse_grid(Hr, controls.pts_tol)
         f_on_Hr = f_on_Hr[:, Hr.m]  # here I remove duplicates in f_on_Hr too
 
-    adapted: dict = {
-        "N": N,
-        "S": S,
-        "Sr": Sr,
-        "f_on_Sr": f_on_Sr,
-        "nb_pts": nb_pts,
-        "nested": bool(controls["nested"]),
-        "nb_pts_visited": nb_pts if controls["nested"] else Hr.knots.shape[1],
-        "num_evals": num_evals,
-        "intf": intf,
-    }
+    adapted = types.SimpleNamespace(
+        N=N,
+        S=S,
+        Sr=Sr,
+        f_on_Sr=f_on_Sr,
+        nb_pts=nb_pts,
+        nested=bool(controls.nested),
+        nb_pts_visited=nb_pts if controls.nested else Hr.knots.shape[1],
+        num_evals=num_evals,
+        intf=intf,
+    )
 
-    if num_evals > adapted["nb_pts_visited"]:
+    if num_evals > adapted.nb_pts_visited:
         logger.debug(
-            f"Some points have been evaluated more than once. Total: {num_evals - adapted['nb_pts_visited']} "
-            f"extra evaluations over {adapted['nb_pts_visited']} function evaluations"
+            f"Some points have been evaluated more than once. Total: {num_evals - adapted.nb_pts_visited} "
+            f"extra evaluations over {adapted.nb_pts_visited} function evaluations"
         )
 
     # -----------------------------------------------------------------
     #   Private data needed to resume a computation
     # -----------------------------------------------------------------
-    private = {
-        "G": G,
-        "G_log": G_log,
-        "coeff_G": coeff_G,
-        "I": I,
-        "I_log": I_log,
-        "maxprof": maxprof,
-        "idx": idx,
-        "profits": profits,
-        "idx_bin": idx_bin,
-        "Hr": Hr,
-        "f_on_Hr": f_on_Hr,
-        "var_with_pts": var_with_pts,
-        "N_log": N_log,
-        "nb_pts_log": nb_pts_log,
-    }
+    private = types.SimpleNamespace(
+        G=G,
+        G_log=G_log,
+        coeff_G=coeff_G,
+        I=I,
+        I_log=I_log,
+        maxprof=maxprof,
+        idx=idx,
+        profits=profits,
+        idx_bin=idx_bin,
+        Hr=Hr,
+        f_on_Hr=f_on_Hr,
+        var_with_pts=var_with_pts,
+        N_log=N_log,
+        nb_pts_log=nb_pts_log,
+    )
 
-    adapted["private"] = private
+    adapted.private = private
 
     return adapted
 
@@ -580,16 +581,20 @@ def default_controls(controls, N_full):
 
     Parameters
     ----------
-    controls : dict
-        Dictionary of control parameters.
+    controls : dict or types.SimpleNamespace
+        Dictionary of control parameters (will be converted to SimpleNamespace).
     N_full : int
         Full dimension of the parameter space.
 
     Returns
     -------
-    dict
-        Updated controls dictionary with default values for missing fields.
+    types.SimpleNamespace
+        Updated controls as SimpleNamespace with default values for missing fields.
     """
+    # Convert to dict if it's a SimpleNamespace
+    if isinstance(controls, types.SimpleNamespace):
+        controls = vars(controls)
+    
     defaults = {
         "pts_tol": 1e-14,
         "max_pts": 1000,
@@ -604,22 +609,25 @@ def default_controls(controls, N_full):
     for key, val in defaults.items():
         controls.setdefault(key, val)
 
+    # Convert to SimpleNamespace for attribute access
+    controls = types.SimpleNamespace(**controls)
+
     # mandatory fields
-    if "nested" not in controls:
+    if not hasattr(controls, 'nested'):
         raise KeyError("controls must specify the value of 'nested' field")
 
     # weighted profits need a pdf
-    if controls["prof"] in {"weighted Linf/new_points", "weighted Linf"}:
-        if "pdf" not in controls:
+    if controls.prof in {"weighted Linf/new_points", "weighted Linf"}:
+        if not hasattr(controls, 'pdf'):
             raise KeyError(
                 "you need to set the field 'pdf' to use 'weighted Linf' and 'weighted Linf/new_points' profits"
             )
 
     # buffer size - cannot be larger than the full dimension
-    if "var_buffer_size" not in controls:
-        controls["var_buffer_size"] = N_full
-    elif controls["var_buffer_size"] > N_full:
-        controls["var_buffer_size"] = N_full
+    if not hasattr(controls, 'var_buffer_size'):
+        controls.var_buffer_size = N_full
+    elif controls.var_buffer_size > N_full:
+        controls.var_buffer_size = N_full
 
         logger.warning(
             "controls.var_buffer_size cannot be greater than N_full. "
@@ -627,7 +635,7 @@ def default_controls(controls, N_full):
         )
 
     # check recycling option
-    if controls["recycling"] not in {"priority_to_evaluation", "priority_to_recycling"}:
+    if controls.recycling not in {"priority_to_evaluation", "priority_to_recycling"}:
         raise ValueError("unknown value of field controls.recycling")
 
     return controls
@@ -701,7 +709,7 @@ def start_adapt(f, N, knots, lev2knots, prev_adapt, controls):
         coeff_G = np.array([1.0])
 
         S,_ = create_sparse_grid_multiidx_set(G, knots, lev2knots)
-        Sr = reduce_sparse_grid(S, controls["pts_tol"])
+        Sr = reduce_sparse_grid(S, controls.pts_tol)
         f_on_Sr,*_ = evaluate_on_sparse_grid(f, None, Sr)  # here we don't need controls.pts_tol, there is no check on new/old points
 
         Hr = copy.copy(Sr)
@@ -717,27 +725,27 @@ def start_adapt(f, N, knots, lev2knots, prev_adapt, controls):
         #--------------------------------------------
         logger.debug("adapt--recycling")
 
-        N = prev_adapt["N"]
-        N_log = prev_adapt["private"]["N_log"]
-        var_with_pts = prev_adapt["private"]["var_with_pts"]
-        I = prev_adapt["private"]["I"]
-        I_log = prev_adapt["private"]["I_log"]
-        idx = prev_adapt["private"]["idx"]
-        maxprof = prev_adapt["private"]["maxprof"]
-        idx_bin = prev_adapt["private"]["idx_bin"]
-        profits = prev_adapt["private"]["profits"]
-        G = prev_adapt["private"]["G"]
-        G_log = prev_adapt["private"]["G_log"]
-        coeff_G = prev_adapt["private"]["coeff_G"]
-        S = prev_adapt["S"]
-        Sr = prev_adapt["Sr"]
-        f_on_Sr = prev_adapt["f_on_Sr"]
-        Hr = prev_adapt["private"]["Hr"]
-        f_on_Hr = prev_adapt["private"]["f_on_Hr"]
-        intf = prev_adapt["intf"]
-        nb_pts = prev_adapt["nb_pts"]
-        nb_pts_log = prev_adapt["private"]["nb_pts_log"]
-        num_evals = prev_adapt["num_evals"]
+        N = prev_adapt.N
+        N_log = prev_adapt.private.N_log
+        var_with_pts = prev_adapt.private.var_with_pts
+        I = prev_adapt.private.I
+        I_log = prev_adapt.private.I_log
+        idx = prev_adapt.private.idx
+        maxprof = prev_adapt.private.maxprof
+        idx_bin = prev_adapt.private.idx_bin
+        profits = prev_adapt.private.profits
+        G = prev_adapt.private.G
+        G_log = prev_adapt.private.G_log
+        coeff_G = prev_adapt.private.coeff_G
+        S = prev_adapt.S
+        Sr = prev_adapt.Sr
+        f_on_Sr = prev_adapt.f_on_Sr
+        Hr = prev_adapt.private.Hr
+        f_on_Hr = prev_adapt.private.f_on_Hr
+        intf = prev_adapt.intf
+        nb_pts = prev_adapt.nb_pts
+        nb_pts_log = prev_adapt.private.nb_pts_log
+        num_evals = prev_adapt.num_evals
 
     return (
         N,
@@ -810,11 +818,11 @@ def compute_profit_idx(ng_idx, f, S, T, Tr, Sr, Hr, f_on_Sr, f_on_Hr, intf, nb_p
     assert ng_idx.ndim==1
     N = ng_idx.shape[0]
     Tr_on_new_pts = None
-    if controls["nested"]:
+    if controls.nested:
         # here we evaluate on new points only. Note that finding which points have been evaluated already
         # relies on multiindex info almost exclusively (because the points are nested) so this is quite efficient
         f_on_Tr, new_points, idx_newp, *_ = evaluate_on_sparse_grid(
-            f, T, Tr, f_on_Sr, S, Sr, controls["pts_tol"]
+            f, T, Tr, f_on_Sr, S, Sr, controls.pts_tol
         )
         intnew = f_on_Tr @ Tr.weights.T
 
@@ -828,7 +836,7 @@ def compute_profit_idx(ng_idx, f, S, T, Tr, Sr, Hr, f_on_Sr, f_on_Hr, intf, nb_p
     else:
         # in this case, we need to keep track of all the points explored, even those that have been discarded in
         # previous iterations
-        if controls["recycling"] == "priority_to_evaluation":
+        if controls.recycling == "priority_to_evaluation":
             # here we allow for multiple evaluations of the same point because we recycle from the previous grid only.
             # if the function evaluation is "cheap" this is much faster, because the search for common points relies
             # on multiindices and not on comparison of coordinates
@@ -839,7 +847,7 @@ def compute_profit_idx(ng_idx, f, S, T, Tr, Sr, Hr, f_on_Sr, f_on_Hr, intf, nb_p
                 f_on_Sr,
                 S,
                 Sr,
-                controls["pts_tol"],
+                controls.pts_tol,
             )
             intnew = f_on_Tr @ Tr.weights.T
 
@@ -863,7 +871,7 @@ def compute_profit_idx(ng_idx, f, S, T, Tr, Sr, Hr, f_on_Sr, f_on_Hr, intf, nb_p
                 f_on_Hr,
                 None,
                 Hr.knots,  # this is not an error
-                controls["pts_tol"],
+                controls.pts_tol,
             )
             intnew = f_on_Tr @ Tr.weights.T
 
@@ -877,7 +885,7 @@ def compute_profit_idx(ng_idx, f, S, T, Tr, Sr, Hr, f_on_Sr, f_on_Hr, intf, nb_p
             nb_pts_log = np.append(nb_pts_log, nb_pts)
 
         # moreover, if profit is of type Linf, we need to evaluate the new grid on the ``nominally new points'',
-        if controls["prof"] in {
+        if controls.prof in {
             "Linf/new_points",
             "Linf",
             "weighted Linf/new_points",
@@ -887,24 +895,24 @@ def compute_profit_idx(ng_idx, f, S, T, Tr, Sr, Hr, f_on_Sr, f_on_Hr, intf, nb_p
             Tx = tensor_grid(N, [lev2knots(ng_idx[i]+1) for i in range(N)], knots)
             new_points = Tx.knots
             Tr_on_new_pts = interpolate_on_sparse_grid(T, Tr, f_on_Tr, new_points)
-        #elif controls['prof'] in ['deltaint/new_points', 'deltaint']:
+        #elif controls.prof in ['deltaint/new_points', 'deltaint']:
             # no need of new points
         else:
             raise ValueError('do we need new points in this case? fix code here')
 
-    prof_type = controls["prof"]
-    op_vect = controls["op_vect"]
+    prof_type = controls.prof
+    op_vect = controls.op_vect
 
     if prof_type == "Linf/new_points":
         Sr_on_new_pts = interpolate_on_sparse_grid(S, Sr, f_on_Sr, new_points)
-        if controls["nested"]:
+        if controls.nested:
             Prof_temp = np.max(op_vect(f_on_Tr[:, idx_newp], Sr_on_new_pts)) / newp
         else:
             Prof_temp = np.max(op_vect(Tr_on_new_pts, Sr_on_new_pts)) / newp
 
     elif prof_type == "Linf":
         Sr_on_new_pts = interpolate_on_sparse_grid(S, Sr, f_on_Sr, new_points)
-        if controls["nested"]:
+        if controls.nested:
             Prof_temp = np.max(op_vect(f_on_Tr[:, idx_newp], Sr_on_new_pts))
         else:
             Prof_temp = np.max(op_vect(Tr_on_new_pts, Sr_on_new_pts))
@@ -919,11 +927,11 @@ def compute_profit_idx(ng_idx, f, S, T, Tr, Sr, Hr, f_on_Sr, f_on_Hr, intf, nb_p
 
     elif prof_type == "weighted Linf/new_points":
         Sr_on_new_pts = interpolate_on_sparse_grid(S, Sr, f_on_Sr, new_points)
-        if controls["nested"]:
+        if controls.nested:
             Prof_temp = (
                 np.max(
                     op_vect(f_on_Tr[:, idx_newp], Sr_on_new_pts)
-                    * controls["pdf"](new_points)
+                    * controls.pdf(new_points)
                 )
                 / newp
             )
@@ -931,22 +939,22 @@ def compute_profit_idx(ng_idx, f, S, T, Tr, Sr, Hr, f_on_Sr, f_on_Hr, intf, nb_p
             Prof_temp = (
                 np.max(
                     op_vect(Tr_on_new_pts, Sr_on_new_pts)
-                    * controls["pdf"](new_points)
+                    * controls.pdf(new_points)
                 )
                 / newp
             )
 
     elif prof_type == "weighted Linf":
         Sr_on_new_pts = interpolate_on_sparse_grid(S, Sr, f_on_Sr, new_points)
-        if controls["nested"]:
+        if controls.nested:
             Prof_temp = np.max(
                 op_vect(f_on_Tr[:, idx_newp], Sr_on_new_pts)
-                * controls["pdf"](new_points)
+                * controls.pdf(new_points)
             )
         else:
             Prof_temp = np.max(
                 op_vect(Tr_on_new_pts, Sr_on_new_pts)
-                * controls["pdf"](new_points)
+                * controls.pdf(new_points)
             )
     else:
         raise ValueError("unknown profit indicator. Check spelling")

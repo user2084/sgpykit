@@ -58,13 +58,13 @@ def test_adapt_sparse_grid_examples(f, knots_f, exp_bufint, exp_nobufint, exp_on
                                          prev_adapt, controls)
 
     # ---- one‑shot construction (no adapt) ---------------------------
-    G = adapt_no_buff['private']['G']
+    G = adapt_no_buff.private.G
     S, _ = sg.create_sparse_grid_multiidx_set(G, knots_f, lev2knots)
     Sr = sg.reduce_sparse_grid(S)
     Q, _ = sg.quadrature_on_sparse_grid(f, S=None, Sr=Sr)
 
-    assert np.isclose(adapt_buff['intf'][0], exp_bufint)
-    assert np.isclose(adapt_no_buff['intf'][0], exp_nobufint)
+    assert np.isclose(adapt_buff.intf[0], exp_bufint)
+    assert np.isclose(adapt_no_buff.intf[0], exp_nobufint)
     assert np.isclose(Q[0], exp_oneint)
 
 
@@ -90,12 +90,12 @@ def test_adapt_sparse_grid():
     prev_adapt = None
 
     adapt1 = sg.adapt_sparse_grid(f, N, knots, lev2knots, prev_adapt, controls)
-    assert adapt1["N"] == 2
-    assert adapt1["nb_pts"] == 21
-    assert adapt1["nb_pts_visited"] == 21
-    assert adapt1["nested"] == 1
+    assert adapt1.N == 2
+    assert adapt1.nb_pts == 21
+    assert adapt1.nb_pts_visited == 21
+    assert adapt1.nested == 1
 
-    S = adapt1["S"]
+    S = adapt1.S
     assert is_list_math_equal(S.size, [5,9,3,15,5])
     assert is_list_math_equal(S.m, [
         [1, 5],
@@ -126,7 +126,7 @@ def test_adapt_sparse_grid():
     ])
     # NOTE: not testing every field here
 
-    Sr = adapt1["Sr"]
+    Sr = adapt1.Sr
     knots_expected = [
         [-1.000000000000000, -1.000000000000000, -1.000000000000000, -1.000000000000000, -1.000000000000000,
          -0.707106781186547, 0.000000000000000,
@@ -154,20 +154,20 @@ def test_adapt_sparse_grid():
     assert Sr.size == size_expected
     assert is_list_math_equal(Sr.n, n_expected)
     assert is_list_math_equal(Sr.m, m_expected)
-    assert np.isclose(adapt1["intf"], 1.054351534160174)
+    assert np.isclose(adapt1.intf, 1.054351534160174)
 
-    assert np.allclose(adapt1["f_on_Sr"],  np.array([
+    assert np.allclose(adapt1.f_on_Sr,  np.array([
         0.434782608695652, 0.555555555555556, 0.769230769230769, 0.555555555555556, 0.434782608695652, 1.250000000000000, 0.769230769230769, 0.866886620207235, 1.250000000000000,
         2.239909496297619, 3.333333333333333, 2.239909496297618, 1.250000000000000, 0.866886620207235, 0.769230769230769, 1.250000000000000, 0.434782608695652, 0.555555555555556,
         0.769230769230769, 0.555555555555556, 0.434782608695652
     ]))
 
-    private = adapt1["private"]
-    assert np.isclose(private["maxprof"], 0.400641025641026)
-    assert np.allclose(private["profits"], np.array([1.887077294685992e-01, 7.931967117769390e-02]))
-    assert is_list_math_equal(private["idx"], [2,0])
-    assert is_list_math_equal(private["idx_bin"], np.array([[1, 2],[0,3]]))
-    assert is_list_math_equal(private["I_log"], matlab_to_python_index(np.array([[1, 1],
+    private = adapt1.private
+    assert np.isclose(private.maxprof, 0.400641025641026)
+    assert np.allclose(private.profits, np.array([1.887077294685992e-01, 7.931967117769390e-02]))
+    assert is_list_math_equal(private.idx, [2,0])
+    assert is_list_math_equal(private.idx_bin, np.array([[1, 2],[0,3]]))
+    assert is_list_math_equal(private.I_log, matlab_to_python_index(np.array([[1, 1],
     [1, 2],
     [2, 1],
     [2, 2],
