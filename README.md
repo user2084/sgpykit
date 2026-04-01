@@ -17,6 +17,10 @@ It implements a Python version of [Sparse Grids Matlab Kit](https://sites.google
 - **Knot Generation**: Extensive collection of quadrature rules and probability distribution-based knot generation functions
 - **Performance Optimization**: Efficient algorithms including point recycling and adaptive refinement strategies
 
+**Restrictions of sgpykit:**
+
+- It is mainly used to approximate multivariate functions, but it does **not** solve equations such as PDEs.
+- sgpykit uses **Lagrange** polynomials. More general polynomial forms are possible, but their implementation is not a high priority right now.
 
 ## sgpykit Qickstart
 
