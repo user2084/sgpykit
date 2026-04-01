@@ -5,34 +5,18 @@ It implements a Python version of [Sparse Grids Matlab Kit](https://sites.google
 
 ## **Key Features**
 
-### **1. Sparse Grid Construction**
-- Supports multiple sparse grid rules (e.g., **Total Degree (TD)**, **Hyperbolic Cross (HC)**, **Smolyak (SM)**).
-- Works with various knot types (e.g., **Clenshaw-Curtis, Gauss-Patterson, Leja, Chebyshev, Legendre, Hermite, Laguerre**).
-- Allows custom level-to-knot mappings (linear, doubling, tripling, etc.).
+- **Grid Construction**: Multiple sparse grid rules (Total Degree, Hyperbolic Cross, Smolyak) with various knot types (Clenshaw-Curtis, Gauss-Patterson, Leja, Chebyshev, Legendre, Hermite, Laguerre) and custom level-to-knot mappings
+- **Adaptive Refinement**: Dimension-adaptive algorithms that dynamically optimize grid resolution based on function behavior
+- **Function Operations**: Efficient evaluation, interpolation, and quadrature computations
+- **Derivative Computation**: Numerical gradients and Hessians from sparse grid approximations
+- **Modal Representations**: Conversion to orthogonal polynomial expansions (Legendre, Chebyshev, Hermite, Laguerre, generalized Laguerre, Jacobi) and generalized Polynomial Chaos Expansions (gPCE) for uncertainty quantification
+- **Sensitivity Analysis**: Sobol index computation to identify influential parameters in high-dimensional models
+- **Visualization**: Specialized 2D/3D plotting for sparse grids and their interpolants
+- **Grid Management**: Conversion between tensor/sparse grids, reduction of duplicate points, and index set manipulation
+- **Polynomial Evaluation**: Comprehensive support for evaluating various polynomial bases in univariate and multivariate forms
+- **Knot Generation**: Extensive collection of quadrature rules and probability distribution-based knot generation functions
+- **Performance Optimization**: Efficient algorithms including point recycling and adaptive refinement strategies
 
-### **2. Adaptive Sparse Grids**
-- Implements **dimension-adaptive refinement** to dynamically refine grids where needed.
-- Optimizes computational efficiency by focusing on the most relevant regions of the domain.
-
-### **3. Function Evaluation & Interpolation**
-- Efficiently evaluates functions on sparse grids.
-- Supports **interpolation, quadrature, and derivative computations** (gradients, Hessians).
-- Handles both **scalar and vector-valued functions**.
-
-### **4. Modal & Polynomial Representations**
-- Converts sparse grid interpolants into **orthogonal polynomial expansions** (Legendre, Chebyshev, Hermite, etc.).
-- Enables **generalized Polynomial Chaos Expansions (gPCE)** for uncertainty quantification.
-
-### **5. Visualization & Analysis**
-- Includes tools for **plotting sparse grids** in 2D and 3D.
-- Computes **Sobol indices** for sensitivity analysis.
-- Provides utilities for comparing and validating sparse grids.
-
-### **Use Cases**
-- **Uncertainty Quantification (UQ)** – Efficiently compute statistics of high-dimensional models.
-- **Numerical Integration** – Perform high-dimensional quadrature with fewer evaluations.
-- **Interpolation & Surrogate Modeling** – Approximate complex functions with sparse grids.
-- **Sensitivity Analysis** – Compute Sobol indices to identify influential parameters.
 
 ## sgpykit Qickstart
 
@@ -156,17 +140,56 @@ Each tensor grid structure contains the following fields (also see [SGMK manual 
 - **coeff**: the coefficients $c_{\mathbf{i}}$ of the sparse grid in the combination technique formulas
 
 Note that sparse grid knots (and in general knots $\mathbf{y} \in \Gamma$) are always stored in sgpykit as row vectors 
-(and sets of knots such as $\mathbf{S}.\text{knots}$ are stored as matrices where knots are rows).
+(and sets of knots such as `S.knots` are stored as matrices where knots are rows).
 
 Reduced sparse grids contain the following fields:
 
 - **knots**: matrix collecting the list of non-repeated knots, i.e., the set $\mathcal{T}_{\mathcal{I}}$
 - **weights**: vector of quadrature weights corresponding to the knots above
 - **size**: size of the sparse grid, i.e. the number of non-repeated knots
-- **m**: 0-based index array that maps each knot of $\mathbf{Sr}.\text{knots}$ to their original position in $\mathbf{S}.\text{knots}$ (if they have been retained as unique representative of several repeated knots)
-- **n**: 0-based index array that maps each knot of $\mathbf{S}.\text{knots}$ to $\mathbf{Sr}.\text{knots}$
+- **m**: 0-based index array that maps each knot of `Sr.knots` to their original position in `S.knots` (if they have been retained as unique representative of several repeated knots)
+- **n**: 0-based index array that maps each knot of `S.knots` to `Sr.knots`
 
 In sgpykit these grids are stored as customizable Structure Arrays, where additional fields can be added by the user.
+
+## Using Sparse Grids for Function Evaluation and Integration
+
+Sparse grids provide an efficient way to approximate functions and compute weighted integrals in high-dimensional spaces. The key idea is to combine multiple tensor grids with different levels of resolution, leveraging the combination technique to reduce computational complexity while maintaining accuracy.
+
+### Function Evaluation
+
+To evaluate a function $f(\mathbf{y})$ using sparse grids:
+
+1. **Create the sparse grid**: Use `create_sparse_grid` to generate the multi-index set $\mathcal{I}$ and the corresponding tensor grids.
+2. **Evaluate the function**: Use `evaluate_on_sparse_grid` to compute $f$ at all sparse grid knots.
+3. **Interpolate**: Use `interpolate_on_sparse_grid` to evaluate the sparse grid approximation at arbitrary points.
+
+### Computing Weighted Integrals
+
+To approximate the weighted integral $\int_{\Gamma} f(\mathbf{y}) \rho(\mathbf{y}) \,\mathrm{d}\mathbf{y}$:
+
+1. **Create the sparse grid**: Use `create_sparse_grid` to generate the multi-index set $\mathcal{I}$.
+2. **Evaluate the function**: Use `evaluate_on_sparse_grid` to compute $f$ at all sparse grid knots.
+3. **Compute the integral**: Use `quadrature_on_sparse_grid` to approximate the integral using the combination technique.
+
+The final approximation of the weighted integral can be written as:
+
+$$
+\int_{\Gamma} f(\mathbf{y}) \rho(\mathbf{y}) \,\mathrm{d}\mathbf{y} \approx \mathcal{Q}_{\mathcal{I}} = \sum_{\mathbf{i} \in \mathcal{I}} c_{\mathbf{i}} \sum_{\mathbf{j} \leq m(\mathbf{i})} f\left(\mathbf{y}_{m(\mathbf{i})}^{(\mathbf{j})}\right) \omega_{m(\mathbf{i})}^{(\mathbf{j})}
+$$
+
+where:
+- $\mathcal{I}$ is the set of multi-indices defining the sparse grid
+- $c_{\mathbf{i}}$ are the combination coefficients from the sparse grid construction
+- $\mathbf{y}_{m(\mathbf{i})}^{(\mathbf{j})}$ are the grid points
+- $\omega_{m(\mathbf{i})}^{(\mathbf{j})}$ are the quadrature weights associated with each grid point
+
+This approach significantly reduces the number of function evaluations and quadrature points needed compared to full tensor grids, making it particularly useful for high-dimensional problems.
+
+### Adaptive Sparse Grids
+
+sgpykit implements the Gerstner-Griebel dimension-adaptive scheme through `adapt_sparse_grid`. This algorithm iteratively refines the grid by selecting the most profitable multi-indices based on profit indicators (L∞, weighted, integral-difference, etc.) and various other options.
+
 
 ## Development Status
 
