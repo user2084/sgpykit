@@ -99,7 +99,7 @@ Sr = sg.reduce_sparse_grid(S)
 # -------------------------------------------------
 # 3. Evaluate a target function on the grid points
 # -------------------------------------------------
-fs = lambda x: sum(x) # or np.sum(x,axis=0)
+fs = lambda x: np.exp(sum(x)) # or np.sum(x,axis=0) instead of sum(x)
 
 # evaluate on the *reduced* grid (faster, no duplicate points)
 y,*_ = sg.evaluate_on_sparse_grid(fs, S=None, Sr=Sr)
