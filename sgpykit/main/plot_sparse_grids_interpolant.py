@@ -123,7 +123,7 @@ def plot_sparse_grids_interpolant(ax, S, Sr, domain, f_values, *args, **kwargs):
             PTS_XY = np.vstack((XP_vect, YP_vect))
             nb_pts = PTS_XY.shape[1]
             # Loop over each z level
-            for z_lev in range(len(zp)): # TODO: only last contour is seen
+            for z_lev in range(len(zp)):
                 PTS_Z = zp[z_lev] * np.ones(nb_pts)
                 PTS = np.vstack((PTS_XY, PTS_Z))
                 f_interp_eval = f_interp(PTS)
