@@ -5,7 +5,7 @@ It implements a Python version of [Sparse Grids Matlab Kit](https://sites.google
 
 ## **Key Features**
 
-- **Grid Construction**: Multiple sparse grid rules (Total Degree, Hyperbolic Cross, Smolyak) with various knot types (Clenshaw-Curtis, Gauss-Patterson, Leja, Chebyshev, Legendre, Hermite, Laguerre) and custom level-to-knot mappings
+- **Grid Construction**: Multiple sparse grid rules (Total Degree, Hyperbolic Cross, Smolyak) with various knot types (Clenshaw-Curtis, Genz-Keister, Leja, Chebyshev, Legendre, Hermite, Laguerre) and custom level-to-knot mappings
 - **Adaptive Refinement**: Dimension-adaptive algorithms that dynamically optimize grid resolution based on function behavior
 - **Function Operations**: Efficient evaluation, interpolation, and quadrature computations
 - **Derivative Computation**: Numerical gradients and Hessians from sparse grid approximations
