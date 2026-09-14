@@ -180,7 +180,7 @@ def test_adapt_sparse_grid_pdf():
     f = lambda x: 1.0/(2 + np.exp(x[0]) + np.exp(x[1]))
     N = 2
 
-    knots = lambda n: sg.knots_GK(n, 0, 1)          # Gauss‑Kronrod on [0,1]
+    knots = lambda n: sg.knots_GK(n, 0, 1)          # Genz‑Keister on [0,1]
     lev2knots = sg.lev2knots_GK
     controls = SimpleNamespace(
         max_pts=150,

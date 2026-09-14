@@ -3,10 +3,10 @@ import numpy as np
 
 def GK_lev_table(row_idx, col_idx):
     """
-    Return entries from the Gauss-Kronrod level table.
+    Return entries from the Genz-Keister level table.
 
     This function returns the (row, col) submatrix of the pre-defined
-    Gauss-Kronrod level table. The table maps between Gauss-Kronrod level
+    Genz-Keister level table. The table maps between Genz-Keister level
     indices, the number of knots, and the corresponding quadrature order.
 
     Parameters
@@ -19,7 +19,7 @@ def GK_lev_table(row_idx, col_idx):
     Returns
     -------
     A : ndarray
-        The submatrix of the Gauss-Kronrod level table at the specified
+        The submatrix of the Genz-Keister level table at the specified
         row and column indices.
 
     Notes
