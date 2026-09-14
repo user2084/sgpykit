@@ -1,6 +1,6 @@
 [project]
 name = "sgpykit"
-version = "0.1.0"
+version = "0.2.0pre"
 description = "The Sparse Grids Python Kit provides a Python implementation of sparse grids, and can be used for approximating high-dimensional functions and, in particular, for surrogate-model-based uncertainty quantification."
 authors = [
     {name = "Lorenzo Tamellini et al."}
