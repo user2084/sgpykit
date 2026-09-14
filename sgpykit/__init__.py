@@ -10,7 +10,14 @@ from sgpykit.src import *
 
 from sgpykit.util import misc
 from sgpykit.util import matlab
-from .util.log import logger
+from .util.log import (
+    logger,
+    set_logger_basic_format,
+    set_logger_custom_format,
+    set_logger_info_level,
+    set_logger_debug_level,
+    set_logger_custom_level,
+)
 
 from sgpykit.util.plot import figure_create, clear, plot
 
