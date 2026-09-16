@@ -69,22 +69,25 @@ def plot_sparse_grids_interpolant(ax, S, Sr, domain, f_values, *args, **kwargs):
     # value of 'plot_grid_size'
     NP = int(matlab_kwargs.get('nb_plot_pts', 20))
     # value of 'nb_contourfs'
-    NC = int(matlab_kwargs.get('nb_contourfs', 5 if N==3 else -1)) # TODO: check -1
+    user_provided_nb_contourfs = 'nb_contourfs' in matlab_kwargs
+    NC = int(matlab_kwargs.get('nb_contourfs', 5 if N==3 else -1))
 
-    if NC == -1:
-        logger.warning('ignoring nb_contourfs input')
+    if NC == -1 and user_provided_nb_contourfs:
+        logger.warning(f'ignoring nb_contourfs input (parameter only applicable for N==3, got N=={N})')
 
     # value of 'nb_contour_lines'
-    NL = int(matlab_kwargs.get('nb_contourf_lines', 10 if N==3 else -1)) # TODO: check -1
+    user_provided_nb_contourf_lines = 'nb_contourf_lines' in matlab_kwargs
+    NL = int(matlab_kwargs.get('nb_contourf_lines', 10 if N==3 else -1))
 
-    if NL == -1:
-        logger.warning('ignoring nb_contourf_lines input')
+    if NL == -1 and user_provided_nb_contourf_lines:
+        logger.warning(f'ignoring nb_contourf_lines input (parameter only applicable for N==3, got N=={N})')
 
     # value of 'two_dim_cuts'
-    couples = matlab_kwargs.get('two_dim_cuts', np.arange(1,N+1) if N>3 else -1) # TODO: check -1, arange
+    user_provided_two_dim_cuts = 'two_dim_cuts' in matlab_kwargs
+    couples = matlab_kwargs.get('two_dim_cuts', np.arange(1,N+1) if N>3 else -1)
 
-    if isinstance(couples,int) and couples == -1:
-        logger.warning('ignoring two_dim_cuts input')
+    if isinstance(couples,int) and couples == -1 and user_provided_two_dim_cuts:
+        logger.warning(f'ignoring two_dim_cuts input (parameter only applicable for N>3, got N=={N})')
 
     # extract info on lower and upper ends of each direction
     aa_vec = domain[0,:]
