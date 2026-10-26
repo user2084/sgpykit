@@ -3,9 +3,10 @@ import numpy as np
 from sgpykit.main.evaluate_on_sparse_grid import evaluate_on_sparse_grid
 from sgpykit.tools.type_and_property_check_functions.isreduced import isreduced
 from sgpykit.util import matlab
+from sgpykit.util.parallel import ParallelContext
 
 
-def quadrature_on_sparse_grid(f, S, Sr, evals_old = None, S_old = None, Sr_old = None, tol = None):
+def quadrature_on_sparse_grid(f, S, Sr, evals_old = None, S_old = None, Sr_old = None, tol = None, parallel_ctx=None):
     """
     Compute the integral of a function using a sparse grid.
 
@@ -29,6 +30,8 @@ def quadrature_on_sparse_grid(f, S, Sr, evals_old = None, S_old = None, Sr_old =
         Previous reduced sparse grid object.
     tol : float, optional
         Tolerance for incremental updates.
+    parallel_ctx : ParallelContext, optional
+        Context for parallel execution configuration.
 
     Returns
     -------
@@ -55,7 +58,7 @@ def quadrature_on_sparse_grid(f, S, Sr, evals_old = None, S_old = None, Sr_old =
     elif S is None and Sr:
         # res = QUADRATURE_ON_SPARSE_GRID(f,S), S being a reduced sparse grid.
         if callable(f) and isreduced(Sr):
-            evals,*_ = evaluate_on_sparse_grid(f, S=None, Sr=Sr)
+            evals,*_ = evaluate_on_sparse_grid(f, S=None, Sr=Sr, parallel_ctx=parallel_ctx)
             res = evals @ np.transpose(Sr.weights)
         else:
             if matlab.isnumeric(f) and isreduced(Sr):
@@ -66,9 +69,9 @@ def quadrature_on_sparse_grid(f, S, Sr, evals_old = None, S_old = None, Sr_old =
     elif Sr_old is None:
         raise ValueError('QUADRATURE_ON_SPARSE_GRID does not accept inputs.')
     elif tol is None:
-        evals,*_ = evaluate_on_sparse_grid(f,S=S,Sr=Sr,evals_old=evals_old,S_old=S_old,Sr_old=Sr_old)
+        evals,*_ = evaluate_on_sparse_grid(f,S=S,Sr=Sr,evals_old=evals_old,S_old=S_old,Sr_old=Sr_old,parallel_ctx=parallel_ctx)
     else:
-        evals,*_ = evaluate_on_sparse_grid(f,S=S,Sr=Sr,evals_old=evals_old,S_old=S_old,Sr_old=Sr_old,tol=tol)
+        evals,*_ = evaluate_on_sparse_grid(f,S=S,Sr=Sr,evals_old=evals_old,S_old=S_old,Sr_old=Sr_old,tol=tol,parallel_ctx=parallel_ctx)
 
     res = evals @ np.transpose(Sr.weights)
     return res,evals

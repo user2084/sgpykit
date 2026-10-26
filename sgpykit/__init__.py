@@ -10,6 +10,7 @@ from sgpykit.src import *
 
 from sgpykit.util import misc
 from sgpykit.util import matlab
+from sgpykit.util.parallel import ParallelContext
 from .util.log import (
     logger,
     set_logger_basic_format,

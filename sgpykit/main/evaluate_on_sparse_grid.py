@@ -5,9 +5,10 @@ from sgpykit.src.lookup_merge_and_diff import lookup_merge_and_diff
 from sgpykit.tools.type_and_property_check_functions.is_sparse_grid import is_sparse_grid
 from sgpykit.tools.type_and_property_check_functions.isreduced import isreduced
 from sgpykit.util.struct import Struct
+from sgpykit.util.parallel import ParallelContext
 
 
-def evaluate_on_sparse_grid(f, S, Sr, evals_old=None, S_old=None, Sr_old=None, tol=1e-14):
+def evaluate_on_sparse_grid(f, S, Sr, evals_old=None, S_old=None, Sr_old=None, tol=1e-14, parallel_ctx=None):
     """
     Evaluate a function on a sparse grid, possibly recycling previous calls.
 
@@ -29,6 +30,9 @@ def evaluate_on_sparse_grid(f, S, Sr, evals_old=None, S_old=None, Sr_old=None, t
         Previous reduced sparse grid or matrix of points.
     tol : float, optional
         Tolerance for testing point equality (default 1e-14).
+    parallel_ctx : ParallelContext, optional
+        Context manager for parallel execution configuration.
+        If provided and conditions are met, function evaluations will be parallelized.
 
     Returns
     -------
@@ -61,7 +65,7 @@ def evaluate_on_sparse_grid(f, S, Sr, evals_old=None, S_old=None, Sr_old=None, t
     if Sr and not S:
         if not isreduced(Sr):
             raise ValueError('When evaluate_on_sparse_grid is called with two inputs, the second one must be a reduced sparse grid.')
-        f_eval = simple_evaluate(f, Sr)
+        f_eval = simple_evaluate(f, Sr, parallel_ctx=parallel_ctx)
         new_points = Sr.knots
         tocomp_list = np.arange(0, len(Sr.weights))
         discard_points = []
@@ -83,7 +87,7 @@ def evaluate_on_sparse_grid(f, S, Sr, evals_old=None, S_old=None, Sr_old=None, t
     assert Sr and S
 
     if len(evals_old)==0 and len(Sr_old)==0 and (S_old is None or len(S_old)==0):
-        f_eval = simple_evaluate(f, Sr)
+        f_eval = simple_evaluate(f, Sr, parallel_ctx=parallel_ctx)
         new_points = Sr.knots
         tocomp_list = np.arange(0, len(Sr.weights))
         discard_points = []
@@ -107,14 +111,21 @@ def evaluate_on_sparse_grid(f, S, Sr, evals_old=None, S_old=None, Sr_old=None, t
 
     f_eval = np.zeros((s, N))
 
-    evals_new = f(pts_list[:, tocomp_list])
+    # parallel_ctx.execute() falls back to serial when conditions are not met
+    # or no context is given, so a single call suffices here
+    points = pts_list[:, tocomp_list]
+    if parallel_ctx is not None:
+        evals_new = np.atleast_2d(parallel_ctx.execute(f, points))
+    else:
+        evals_new = np.atleast_2d(f(points))
+
     f_eval[:, tocomp_list] = evals_new
     f_eval[:, recycle_list] = evals_old[:, recycle_list_old]
 
     return f_eval, new_points, tocomp_list, discard_points, discard_list
 
 
-def simple_evaluate(f, Sr):
+def simple_evaluate(f, Sr, parallel_ctx=None):
     """
     Evaluate a function on a reduced sparse grid without recycling previous evaluations.
 
@@ -124,6 +135,8 @@ def simple_evaluate(f, Sr):
         Function to evaluate.
     Sr : reduced sparse grid
         Reduced sparse grid structure.
+    parallel_ctx : ParallelContext, optional
+        Context for parallel execution configuration.
 
     Returns
     -------
@@ -134,6 +147,12 @@ def simple_evaluate(f, Sr):
     #
     # does not exploit the previous sparse grids evaluations
 
-    output = np.atleast_2d(f(Sr.knots))
+    points = Sr.knots
+    
+    # Use parallelization if context provided and conditions met
+    if parallel_ctx is not None and parallel_ctx.should_use_parallel(points.shape[1], points):
+        output = np.atleast_2d(parallel_ctx.execute(f, points))
+    else:
+        output = np.atleast_2d(f(points))
 
     return output
