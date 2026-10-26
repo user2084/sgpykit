@@ -128,10 +128,13 @@ def reduce_sparse_grid(S, tol=1e-14):
     # "element in position k of kk goes in position invindex(k) in kk_reduced"
 
     nb_knots_reduced = len(index_reduced)
+    # weights dtype follows ww, so complex-valued evaluations accumulate
+    # correctly instead of being cast to real (ComplexWarning)
+    weights = np.zeros(nb_knots_reduced, dtype=np.asarray(ww).dtype)
     Sr = matlab.struct(
         knots=np.transpose(kk_reduced),
         m=index_reduced, # 0-based index
-        weights=np.zeros(nb_knots_reduced),
+        weights=weights,
         n=invindex, # 0-based index, finally, i use invindex to compute weights
         size=nb_knots_reduced
     )
